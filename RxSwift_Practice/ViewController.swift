@@ -19,7 +19,9 @@ class ViewController: UIViewController {
 //        高階函數_組合操作符()
 //        高階函數_映射操作符()
 //        高階函數_過濾條件操作符()
-        高階函數_集合控制操作符()
+//        高階函數_集合控制操作符ㄧ()
+        
+        高階函數_集合控制操作符二()
 
     }
     
@@ -382,7 +384,7 @@ class ViewController: UIViewController {
         
     }
     
-    func 高階函數_集合控制操作符()
+    func 高階函數_集合控制操作符一()
     {
         //MARK: toArray -
         print("*****toArray*****")
@@ -423,5 +425,147 @@ class ViewController: UIViewController {
         subject2.onNext("3")
         
     }
+    
+    func 高階函數_集合控制操作符二()
+    {
+        let err = NSError(domain: "errorDomain", code: 123, userInfo: ["test":"error"])
+        
+        //MARK: catchErrorJustReturn - 失敗後即停止
+        print("*****catchErrorJustReturn*****")
+        let sequenceThatFails = PublishSubject<String>()
+
+        sequenceThatFails
+            .catchErrorJustReturn("Cooci")
+            .subscribe { print($0) }
+            .disposed(by: disposeBag)
+
+        sequenceThatFails.onNext("Hank")
+        sequenceThatFails.onNext("Kody") // 正常序列發送成功的
+        //發送失敗的序列,一旦訂閱到位 返回我們之前設定的錯誤的預案
+        sequenceThatFails.onError(err)
+        sequenceThatFails.onNext("qqq")  // 不發送
+
+        //MARK: catchError - 攔截失敗後替換另一組
+        print("*****catchError*****")
+        let recoverySequence = PublishSubject<String>()
+        let sequenceThatFails22 = PublishSubject<String>()
+        sequenceThatFails22
+            .catchError {
+                print("Error:", $0)
+                return recoverySequence  // 獲取到了錯誤序列-我們在中間的閉包操作處理完畢,返回給用戶需要的序列(showAlert)
+            }
+            .subscribe { print($0) }
+            .disposed(by: disposeBag)
+        
+        sequenceThatFails22.onNext("Hank")
+        sequenceThatFails22.onNext("Kody") // 正常序列發送成功的
+        sequenceThatFails22.onError(err) // 發送失敗的序列
+        recoverySequence.onNext("CC") // 繼續發送
+       
+        //MARK: retry - 通過無限地重新訂閱可觀察序列來恢復重複的錯誤事件
+        print("*****retry*****")
+        var count = 1 // 外界變量控制流程
+        let sequenceRetryErrors = Observable<String>.create { observer in
+            observer.onNext("Hank")
+            observer.onNext("Kody")
+            observer.onNext("CC")
+            
+            if count == 1 {
+                // 流程進來之後就會過度-這裡的條件可以作為出口,失敗的次數
+                observer.onError(err)  // 接收到了錯誤序列,重試序列發生
+                print("錯誤序列來了")
+                count += 1
+            }
+            
+            observer.onNext("Lina")
+            observer.onNext("小雁子")
+            observer.onNext("婷婷")
+            observer.onCompleted()
+            
+            return Disposables.create()
+        }
+
+        sequenceRetryErrors
+            .retry()
+            .subscribe(onNext: { print($0) })
+            .disposed(by: disposeBag)
+        
+        //MARK: retry(_:) - 直到重試次數達到max為止 遇到onError則進行下一回合
+        print("*****retry(_:)*****")
+        var conunt2 = 1
+        let sequenceThatErrors2 = Observable<String>.create { observer in
+            observer.onNext("1")
+            observer.onNext("2")
+            observer.onNext("3")
+            if conunt2 < 3 {
+                observer.onError(err)
+                print("錯誤序列")
+                conunt2 += 1
+            }
+            observer.onNext("4")
+            observer.onNext("5")
+            observer.onCompleted()
+            return Disposables.create()
+        }
+        sequenceThatErrors2.retry(5).subscribe({
+            print($0)
+            }).disposed(by: disposeBag)
+        
+
+        //MARK: RxSwift.Resources.total : 提供所有Rx資源分配的計數，這對於在開發期間檢測洩漏非常有用
+        print("*****RxSwift.Resources.total*****")
+        
+        print(RxSwift.Resources.total)
+        let subject = BehaviorSubject(value: "Cooci")
+        let subscription1 = subject.subscribe(onNext: { print($0) })
+        print(RxSwift.Resources.total)
+        let subscription2 = subject.subscribe(onNext: { print($0) })
+        print(RxSwift.Resources.total)
+        subscription1.dispose()
+        print(RxSwift.Resources.total)
+        subscription2.dispose()
+        print(RxSwift.Resources.total)
+        
+        //MARK: multicast   注意 publish() 被訂閱後不會發出元素，直到 connect 操作符被應用為止
+        print("*****multicast*****")
+        let netOB = Observable<Any>.create { (observer) -> Disposable in
+//                sleep(2)// 模擬網絡延遲
+                print("我開始請求網絡了")
+                observer.onNext("請求到的網絡數據")
+                observer.onNext("請求到的本地")
+                observer.onCompleted()
+                return Disposables.create {
+                    print("銷毀回調了")
+                }
+            }.publish()
+        netOB.subscribe(onNext: { (anything) in
+                print("訂閱1:",anything)
+            })
+            .disposed(by: disposeBag)
+        netOB.subscribe(onNext: { (anything) in
+                print("訂閱2:",anything)
+            })
+            .disposed(by: disposeBag)
+        _ = netOB.connect()
+        
+        //MARK: replay
+        print("*****replay*****")
+        let intSequence = Observable<Int>.interval(.seconds(1), scheduler: MainScheduler.instance)
+            .replay(5)
+        _ = intSequence
+            .subscribe(onNext: { print("Subscription 1:, Event: \($0)") })
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            _ = intSequence.connect()
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+          _ = intSequence
+              .subscribe(onNext: { print("Subscription 2:, Event: \($0)") })
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+          _ = intSequence
+              .subscribe(onNext: { print("Subscription 3:, Event: \($0)") })
+        }
+
+    }
 }
-testtest
+
