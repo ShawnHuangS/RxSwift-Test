@@ -550,21 +550,21 @@ class ViewController: UIViewController {
         
         //MARK: replay
         print("*****replay*****")
-        let intSequence = Observable<Int>.interval(.seconds(1), scheduler: MainScheduler.instance)
-            .replay(5)
-        _ = intSequence
-            .subscribe(onNext: { print("Subscription 1:, Event: \($0)") })
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-            _ = intSequence.connect()
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
-          _ = intSequence
-              .subscribe(onNext: { print("Subscription 2:, Event: \($0)") })
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
-          _ = intSequence
-              .subscribe(onNext: { print("Subscription 3:, Event: \($0)") })
-        }
+//        let intSequence = Observable<Int>.interval(.seconds(1), scheduler: MainScheduler.instance)
+//            .replay(5)
+//        _ = intSequence
+//            .subscribe(onNext: { print("Subscription 1:, Event: \($0)") })
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+//            _ = intSequence.connect()
+//        }
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 4) {
+//          _ = intSequence
+//              .subscribe(onNext: { print("Subscription 2:, Event: \($0)") })
+//        }
+//        DispatchQueue.main.asyncAfter(deadline: .now() + 8) {
+//          _ = intSequence
+//              .subscribe(onNext: { print("Subscription 3:, Event: \($0)") })
+//        }
 
     }
 }
