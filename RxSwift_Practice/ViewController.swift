@@ -8,23 +8,179 @@
 
 import UIKit
 import RxSwift
+import RxCocoa
 class ViewController: UIViewController {
     
+/*
+    可觀察序列 - Observable
+    觀察者 - Observer
+    調度者 - Scheduler
+    銷毀者 - Dispose
+ */
+    @IBOutlet weak var testBtn: UIButton!
+    @IBOutlet weak var testField: UITextField!
+    
     let disposeBag = DisposeBag()
+    let err = NSError(domain: "errorDomain", code: 123, userInfo: ["test":"error"])
     override func viewDidLoad() {
         
         super.viewDidLoad()
-
+//        Observable_Type()
+        Subject_Type()
+        
 //        Observable序列的創建方式()
 //        高階函數_組合操作符()
 //        高階函數_映射操作符()
 //        高階函數_過濾條件操作符()
 //        高階函數_集合控制操作符ㄧ()
+//        高階函數_集合控制操作符二()
         
-        高階函數_集合控制操作符二()
+        
+      
+    }
+//MARK: - Observable 類型
+    func Observable_Type()
+    {
+        
+        
+        //MARK:  Observable 隨意產生
+        print("********Observable********")
+        let ob = Observable<String>.create { (obs) -> Disposable in
+            obs.onNext("可以")
+            obs.onNext("多個")
+            obs.onError(self.err)
+            obs.onCompleted()
+            return Disposables.create()
+        }
+        
+        
+        ob.subscribe(onNext : { str in
+            print(str)
+        },onError: { err in
+            print(err)
+        }).disposed(by: disposeBag)
+        
+        
+        //MARK:  single  只產生一個元素 或一個error
+        print("********single********")
+        let singleOB = Single<Any>.create { (single) -> Disposable in
+            print("singleOB 是否共享")
+            single(.success("Cooci"))
+            single(.error(self.err))
+           
+            return Disposables.create()
+        }
+        
+        
+        
+        singleOB.subscribe { (reslut) in
+            print("訂閱:\(reslut)")
+            }.disposed(by: disposeBag)
+        
+        //MARK:  Completable  只產生一個completed or 一個error  Completable 適用於那種你只關心任務是否完成，而不需要在意任務返回值的情況。它和 Observable<Void> 有點相似。
+        print("********Completable********")
+        let completableOB = Completable.create { (completable) -> Disposable in
+            print("completableOB 是否共享")
+            completable(.completed)
+            completable(.error(self.err))
+            return Disposables.create()
+        }
+        completableOB.subscribe { (reslut) in
+            print("訂閱:\(reslut)")
+            }.disposed(by: disposeBag)
+         
+        //MARK:  Maybe  只產生一個元素 or completed or 一個error
+        print("********Maybe********")
+        _ = Maybe<Any>.create { maybe -> Disposable in
+            maybe(.error(self.err))
+            maybe(.success("xxx"))
+            maybe(.completed)
+            return Disposables.create()
+        }.subscribe(onSuccess: { str in
+            print(str)
+        }, onError: { eee in
+            print(eee.localizedDescription)
+        }, onCompleted: {
+            print("completed")
+        }).disposed(by: disposeBag)
 
+
+        
     }
     
+//MARK: - Subject 類型
+    func Subject_Type()
+    {
+        
+        //MARK:  PublishSubject 只有訂閱後的訊號
+        print("********PublishSubject********")
+        // 1:初始化序列
+        let publishSub = PublishSubject<Int>() //初始化一個PublishSubject 裝著Int類型的序列
+        // 2:發送響應序列
+        publishSub.onNext(1)
+        // 3:訂閱序列
+        publishSub.subscribe { print("訂閱到了:",$0)}
+            .disposed(by: self.disposeBag)
+        // 再次發送響應
+        publishSub.onNext(2)
+        publishSub.onNext(3)
+    
+        
+        //MARK:  BehaviorSubject 收到上一個訊號若無則發送初始值 有complete error事件 跟BehaviorSubject
+        print("********BehaviorSubject********")
+        let behaviorSub = BehaviorSubject<String>(value:"init")
+        behaviorSub.onNext("1")
+        behaviorSub.onNext("2")
+        
+        behaviorSub.subscribe(onNext:{
+            print($0)
+        }).disposed(by: self.disposeBag)
+        behaviorSub.onCompleted()
+        behaviorSub.onNext("3")
+       
+        
+        //MARK:  ReplaySubject 可以收到往前n個事件 看buffer size
+        print("********ReplaySubject********")
+        let replaySub = ReplaySubject<Int>.create(bufferSize: 5)
+        replaySub.onNext(1)
+        replaySub.onNext(2)
+        replaySub.onNext(3)
+        replaySub.onNext(4)
+        replaySub.subscribe{ print("訂閱到了:",$0)}
+            .disposed(by: self.disposeBag)
+        replaySub.onNext(7)
+        
+        
+        //MARK:  AsyncSubject  只會收到完成前的最後一個事件
+        print("********AsyncSubject********")
+        let asynSub = AsyncSubject<Int>()
+        asynSub.onNext(1)
+        asynSub.onNext(2)
+        asynSub.onCompleted()
+        asynSub.onNext(3)
+                
+        asynSub.subscribe{ print("訂閱到了:",$0)}
+        .disposed(by: self.disposeBag)
+        
+        //MARK:  BehaviorRelay 就是 BehaviorSubject 去掉終止事件 onError 或 onCompleted
+        print("********BehaviorRelay********")
+        let behaviorRelay = BehaviorRelay<Int>(value: 200)
+        behaviorRelay.accept(500)
+        behaviorRelay.subscribe(onNext: { (num) in
+            print(num)
+        }, onError: { (err) in
+            print(err)
+        }, onCompleted: {
+            print("complete")
+        }) {
+            print("disposeable")
+        }.disposed(by: self.disposeBag)
+        
+        behaviorRelay.accept(2000)
+        behaviorRelay.accept(1000)
+        
+        
+    }
 //MARK: - Observable序列的創建方式
     func Observable序列的創建方式()
     {
@@ -132,7 +288,7 @@ class ViewController: UIViewController {
         
         print("********error********")
         //MARK:  error
-        let err = NSError(domain: "errorDomain", code: 123, userInfo: ["test":"error"])
+        
         Observable<Int>.error(err).subscribe { (event) in
             print(event)
         }.disposed(by: disposeBag)
@@ -279,7 +435,7 @@ class ViewController: UIViewController {
             .disposed(by: disposeBag)
     }
     
-    //MARK:  - 高階函數_過濾條件操作符
+//MARK:  - 高階函數_過濾條件操作符
     func 高階函數_過濾條件操作符()
     {
         //MARK: filter -
@@ -383,7 +539,7 @@ class ViewController: UIViewController {
         
         
     }
-    
+//MARK:  - 高階函數_集合控制操作符一
     func 高階函數_集合控制操作符一()
     {
         //MARK: toArray -
@@ -426,9 +582,10 @@ class ViewController: UIViewController {
         
     }
     
+//MARK:  - 高階函數_集合控制操作符二
     func 高階函數_集合控制操作符二()
     {
-        let err = NSError(domain: "errorDomain", code: 123, userInfo: ["test":"error"])
+        
         
         //MARK: catchErrorJustReturn - 失敗後即停止
         print("*****catchErrorJustReturn*****")
@@ -472,7 +629,7 @@ class ViewController: UIViewController {
             
             if count == 1 {
                 // 流程進來之後就會過度-這裡的條件可以作為出口,失敗的次數
-                observer.onError(err)  // 接收到了錯誤序列,重試序列發生
+                observer.onError(self.err)  // 接收到了錯誤序列,重試序列發生
                 print("錯誤序列來了")
                 count += 1
             }
@@ -498,7 +655,7 @@ class ViewController: UIViewController {
             observer.onNext("2")
             observer.onNext("3")
             if conunt2 < 3 {
-                observer.onError(err)
+                observer.onError(self.err)
                 print("錯誤序列")
                 conunt2 += 1
             }
@@ -567,5 +724,6 @@ class ViewController: UIViewController {
 //        }
 
     }
+    
 }
 
