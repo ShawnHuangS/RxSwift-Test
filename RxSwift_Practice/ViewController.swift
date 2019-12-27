@@ -19,24 +19,32 @@ class ViewController: UIViewController {
  */
     @IBOutlet weak var testBtn: UIButton!
     @IBOutlet weak var testField: UITextField!
+    @IBOutlet weak var testLabel: UILabel!
     
     let disposeBag = DisposeBag()
     let err = NSError(domain: "errorDomain", code: 123, userInfo: ["test":"error"])
     override func viewDidLoad() {
         
         super.viewDidLoad()
-//        Observable_Type()
+        Observable_Type()
         Subject_Type()
         
 //        Observable序列的創建方式()
-//        高階函數_組合操作符()
-//        高階函數_映射操作符()
+        高階函數_組合操作符()
+        高階函數_映射操作符()
 //        高階函數_過濾條件操作符()
 //        高階函數_集合控制操作符ㄧ()
 //        高階函數_集合控制操作符二()
         
+        let ob = Observable.of("xxx","aaa")
+        let a = testLabel.rx.text.asObserver()
+        ob.subscribe({ str in
+            print(str)
+        })
+        ob.bind { str in
+            print(str)
+        }
         
-      
     }
 //MARK: - Observable 類型
     func Observable_Type()
@@ -46,6 +54,7 @@ class ViewController: UIViewController {
         //MARK:  Observable 隨意產生
         print("********Observable********")
         let ob = Observable<String>.create { (obs) -> Disposable in
+            
             obs.onNext("可以")
             obs.onNext("多個")
             obs.onError(self.err)
@@ -60,6 +69,7 @@ class ViewController: UIViewController {
             print(err)
         }).disposed(by: disposeBag)
         
+
         
         //MARK:  single  只產生一個元素 或一個error
         print("********single********")
@@ -178,9 +188,8 @@ class ViewController: UIViewController {
         
         behaviorRelay.accept(2000)
         behaviorRelay.accept(1000)
-        
-        
     }
+    
 //MARK: - Observable序列的創建方式
     func Observable序列的創建方式()
     {
@@ -410,20 +419,21 @@ class ViewController: UIViewController {
         
         //MARK:  flatMap
         print("*****flatMap*****")
-//        let boy  = LGPlayer(score: 100)
-//        let girl = LGPlayer(score: 90)
-//        let player = BehaviorSubject(value: boy)
-//
-//        player.asObservable()
-//            .flatMap { $0.score.asObservable() } // 本身score就是序列 模型就是序列中的序列
-//            .subscribe(onNext: { print($0) })
-//            .disposed(by: disposeBag)
-//        boy.score.onNext(60)
-//        player.onNext(girl)
-//        boy.score.onNext(50)
-//        boy.score.onNext(40)//  如果切換到 flatMapLatest 就不會打印
-//        girl.score.onNext(10)
-//        girl.score.onNext(0)
+        let disposeBag = DisposeBag()
+        let first = BehaviorSubject(value: "👦🏻")
+        let second = BehaviorSubject(value: "🅰️")
+        let variable = Variable(first)
+
+        variable.asObservable()
+                .flatMap { $0 }
+                .subscribe(onNext: { print($0) })
+                .disposed(by: disposeBag)
+
+        first.onNext("🐱")
+        variable.value = second
+        second.onNext("🅱️")
+        first.onNext("🐶")
+        
         
         //MARK:  scan
         print("*****scan*****")
@@ -534,10 +544,6 @@ class ViewController: UIViewController {
         sourceSeq.onNext("3")
         referenceSeq.onNext("on") // 條件一出來,下面就可以走了
         sourceSeq.onNext("4")
-        
-        
-        
-        
     }
 //MARK:  - 高階函數_集合控制操作符一
     func 高階函數_集合控制操作符一()
